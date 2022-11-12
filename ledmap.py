@@ -5,7 +5,7 @@
 # along with the territory's airports METAR data.
 #
 # Define the size of the Matrix below at DISPLAY_X, DISPLAY_Y, CHAIN_LENGTH and PARALLEL.
-# 64x32 and 64x64 Matrix display sizes have been tested singlely and chained.
+# 64x32 and 64x64 Matrix display sizes have been tested singlely, chained and paralleled.
 # RPi Zero W works well, but slow to boot. RPi 3B works quite well and as
 # imagined, RPi 4's work the best.
 #
@@ -68,6 +68,9 @@
 #    display_hiwinds=1     # 1 = yes, 0 = no
 #    hiwinds_single=1      # 1 = draw high wind airports individually, 0 = draw them all at once.
 #    clock_only = 0        # 1 = yes, 0 = no, this will only display the clock, and no metar data
+#    big_ltng_flash = 1    # 1 use large lightning flash, 0 use single pixel
+#    ltng_flash_size = 3   # Size of flash, larger is bigger.
+#    single_state = "UTAH" # Default Single State to display for 'state_single_0' in file 'state_lists.py'
 #
 # This software uses flask to create a web admin page that will control the behavior for the display.
 # To access the admin page enter the IP address for the RPi and append ':5000' to it.
