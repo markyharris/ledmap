@@ -134,19 +134,20 @@ def ledmap():
             os.system('sudo shutdown -h now')
 
         elif display == "reboot":
+            flash("Rebooting RPi - One Moment...")
+            time.sleep(1) 
             os.system("ps -ef | grep 'ledmap.py' | awk '{print $2}' | xargs sudo kill")
             os.system('sudo reboot now')
-            flash("Rebooting RPi - One Moment...")
 
         elif display == "off":
             os.system("ps -ef | grep 'ledmap.py' | awk '{print $2}' | xargs sudo kill")
             os.system('sudo python3 ' + PATH + 'ledmap_poweroff.py &')
-            flash("Turning Off LED Map Display - One Moment...")
+            flash("Turning Off LED Map Display")
 
         elif display == "clock":
             os.system("ps -ef | grep 'ledmap.py' | awk '{print $2}' | xargs sudo kill")
             os.system('sudo python3 ' + PATH + 'ledmap.py clock_only=1 &')
-            flash("Turning On LED Map In Clock Only Mode - One Moment...") 
+            flash("Turning On LED Map In Clock Only Mode") 
 
         else:
             os.system("ps -ef | grep 'ledmap.py' | awk '{print $2}' | xargs sudo kill")
