@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LED Map Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="/static/favicon.ico">
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.16.0/umd/popper.min.js"></script>
+  <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+  <script type="text/javascript">
+    window.onload = function() {
+        var eSelect = document.getElementById('fl_state_list_to_use');
+        var optOtherReason = document.getElementById('states');
+        
+        if({{ fl_state_list_to_use }} === 0) {
+            // alert("OnLoad--This Does Equal 0");
+            optOtherReason.style.display = 'block';
+            //document.getElementById('fl_single_state').disabled = false;
+        } else {
+            // alert("OnLoad--This Does NOT Equal 0");
+            optOtherReason.style.display = 'none';
+            //document.getElementById('fl_single_state').disabled = true;
+        }
+        
+        eSelect.onchange = function() {
+            if(eSelect.selectedIndex === 0) {
+                // alert("This Does NOT Equal 0");
+                optOtherReason.style.display = 'block';
+                //document.getElementById('fl_single_state').disabled = false;
+            } else {
+                // alert("This Does Equal 0");
+                optOtherReason.style.display = 'none';
+                //document.getElementById('fl_single_state').disabled = true;
+            } 
+        }
+    }
+  </script>
+
+</head>
+
+<body>
+
+<!-- This Style is specific to the help text that appears when a selection is made -->
+<!-- Technique taken from https://tutorialdeep.com/knowhow/change-image-on-dropdown-select-option-jquery/ -->
+
+<style>
+.myDiv{
+	display:none;
+    text-align:center;
+}  
+.myDiv img{
+  margin: 0 auto;
+}
+.myDiv span{
+	text-align: center;
+    background: #b1cafc;
+    padding: 6px 6px;
+    display: block;
+    width: 400px;
+    border: 1px solid blue;
+    margin: 8px auto;
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+</style>
+ <p>
+ 
+<!-- This script is used to 'show' the appropriate <div> for the specific information about a selection -->
+<script>
+$(document).ready(function(){
+    $('#myselection').on('change', function(){
+    	var demovalue = $(this).val(); 
+		demovalue=$.trim(demovalue.replace(/\s/g, ''));
+        $("div.myDiv").hide();
+        $("#show"+demovalue).show();
+		console.log(demovalue);
+    });
+});
+</script>
+
+<script>
+$(document).ready(function(){
+   $(window).bind("load", function() {
+        $("div.myDiv").hide();
+        $("#show"+"0").show();
+		console.log(demovalue);
+  });
+});
+</script>
+
+ <p>
+ 
+<!-- Main HTML code to display dropdown and submit button -->
+<div class="container-fluid">
+  <div class="card border-primary mb-3">
+  <section class="py-5">
+
+
+<div class="container">
+  <h2>LED Map Admin {{ version }} - {{ name }}</h2>
+  Instructions: Using the options below adjust the behavior as needed. Items such as the lists of states can be found
+  in the file 'state_lists.py' and can be edited as desired. Another file has scaling info by state that can be adjusted
+  to correct the aspect ratio if needed.
+  <br>
+  <hr>
+
+	<!-- Flash message via flask and jinja to announce what is currently being displayed -->
+	<div class="flashes">
+	{% with messages = get_flashed_messages() %}
+	  {% if messages %}
+		<div class=flashes>
+		{% for message in messages %}
+		  </div><b class="text-danger">    {{ message }}</b>
+		{% endfor %}
+
+	  {% endif %}
+	{% endwith %}
+	</div>
+
+
+<form action="{{ url_for('ledmap') }}" method="post"> 
+
+        <label for="display"><b>Choose a Function:</b></label><br>
+		<select name="display" id="display">
+		  <option value="ledmap" {% if display=="ledmap" %} selected="selected" {% endif %}>LED Map Display</option>
+		  <option value="clock" {% if display=="clock" %} selected="selected" {% endif %}>Digital Clock Alone</option>
+		  <option value="off" {% if display=="off" %} selected="selected" {% endif %}>Clear LED Map Display</option>
+		  <option value="reboot" {% if display=="reboot" %} selected="selected" {% endif %}>Reboot RPi</option>
+		  <option value="powerdown" {% if display=="powerdown" %} selected="selected" {% endif %}>Power Down RPi</option>
+		</select>
+		<br>
+		<p><p>
+
+        <label for="fl_state_list_to_use"><b>Choose Which List of States to Display:</b></label><br>
+		<select name="fl_state_list_to_use" id="fl_state_list_to_use">
+		  <option value="0" {% if fl_state_list_to_use=="0" %} selected="selected" {% endif %}>Display Single State</option>
+		  <option value="1" {% if fl_state_list_to_use=="1" %} selected="selected" {% endif %}>Display User Defined States</option>
+		  <option value="2" {% if fl_state_list_to_use=="2" %} selected="selected" {% endif %}>Display all 50 States</option>
+		  <option value="3" {% if fl_state_list_to_use=="3" %} selected="selected" {% endif %}>Display Northeast Region</option>
+		  <option value="4" {% if fl_state_list_to_use=="4" %} selected="selected" {% endif %}>Display Southeast Region</option>
+		  <option value="5" {% if fl_state_list_to_use=="5" %} selected="selected" {% endif %}>Display Midwest Region</option>
+		  <option value="6" {% if fl_state_list_to_use=="6" %} selected="selected" {% endif %}>Display Southwest Region</option>
+		  <option value="7" {% if fl_state_list_to_use=="7" %} selected="selected" {% endif %}>Display West Region</option>
+		  <option value="8" {% if fl_state_list_to_use=="8" %} selected="selected" {% endif %}>Display Lower 48, Hawaii and Alaska</option>
+		  <option value="9" {% if fl_state_list_to_use=="9" %} selected="selected" {% endif %}>Display Lower 48 States Only</option>
+		</select>
+		<br>
+		<p><p>
+		
+		<div id="states">
+        <label for="fl_single_state"><b>If Single State, Select Desired State:</b></label><br>
+		<select name="fl_single_state" id="fl_single_state">
+            <option value="ALASKA" {% if fl_single_state=='"ALASKA"' %} selected="selected" {% endif %}>ALASKA</option>
+            <option value="ALABAMA" {% if fl_single_state=='"ALABAMA"' %} selected="selected" {% endif %}>ALABAMA</option>
+            <option value="ARKANSAS" {% if fl_single_state=='"ARKANSAS"' %} selected="selected" {% endif %}>ARKANSAS</option>
+            <option value="ARIZONA" {% if fl_single_state=='"ARIZONA"' %} selected="selected" {% endif %}>ARIZONA</option>
+            <option value="CALIFORNIA" {% if fl_single_state=='"CALIFORNIA"' %} selected="selected" {% endif %}>CALIFORNIA</option>
+            <option value="COLORADO" {% if fl_single_state=='"COLORADO"' %} selected="selected" {% endif %}>COLORADO</option>
+            <option value="CONNECTICUT" {% if fl_single_state=='"CONNECTICUT"' %} selected="selected" {% endif %}>CONNECTICUT</option>
+            <option value="DELAWARE" {% if fl_single_state=='"DELAWARE"' %} selected="selected" {% endif %}>DELAWARE</option>
+            <option value="FLORIDA" {% if fl_single_state=='"FLORIDA"' %} selected="selected" {% endif %}>FLORIDA</option>
+            <option value="GEORGIA" {% if fl_single_state=='"GEORGIA"' %} selected="selected" {% endif %}>GEORGIA</option>
+            <option value="HAWAII" {% if fl_single_state=='"HAWAII"' %} selected="selected" {% endif %}>HAWAII</option>
+            <option value="IOWA" {% if fl_single_state=='"IOWA"' %} selected="selected" {% endif %}>IOWA</option>
+            <option value="IDAHO" {% if fl_single_state=='"IDAHO"' %} selected="selected" {% endif %}>IDAHO</option>
+            <option value="ILLINOIS" {% if fl_single_state=='"ILLINOIS"' %} selected="selected" {% endif %}>ILLINOIS</option>
+            <option value="INDIANA" {% if fl_single_state=='"INDIANA"' %} selected="selected" {% endif %}>INDIANA</option>
+            <option value="KANSAS" {% if fl_single_state=='"KANSAS"' %} selected="selected" {% endif %}>KANSAS</option>
+            <option value="KENTUCKY" {% if fl_single_state=='"KENTUCKY"' %} selected="selected" {% endif %}>KENTUCKY</option>
+            <option value="LOUISIANA" {% if fl_single_state=='"LOUISIANA"' %} selected="selected" {% endif %}>LOUISIANA</option>
+            <option value="MASSACHUSETTS" {% if fl_single_state=='"MASSACHUSETTS"' %} selected="selected" {% endif %}>MASSACHUSETTS</option>
+            <option value="MARYLAND" {% if fl_single_state=='"MARYLAND"' %} selected="selected" {% endif %}>MARYLAND</option>
+            <option value="MAINE" {% if fl_single_state=='"MAINE"' %} selected="selected" {% endif %}>MAINE</option>
+            <option value="MICHIGAN" {% if fl_single_state=='"MICHIGAN"' %} selected="selected" {% endif %}>MICHIGAN</option>
+            <option value="MINNESOTA" {% if fl_single_state=='"MINNESOTA"' %} selected="selected" {% endif %}>MINNESOTA</option>
+            <option value="MISSOURI" {% if fl_single_state=='"MISSOURI"' %} selected="selected" {% endif %}>MISSOURI</option>
+            <option value="MISSISSIPPI" {% if fl_single_state=='"MISSISSIPPI"' %} selected="selected" {% endif %}>MISSISSIPPI</option>
+            <option value="MONTANA" {% if fl_single_state=='"MONTANA"' %} selected="selected" {% endif %}>MONTANA</option>
+            <option value="NORTH CAROLINA" {% if fl_single_state=='"NORTH CAROLINA"' %} selected="selected" {% endif %}>NORTH CAROLINA</option>
+            <option value="NORTH DAKOTA"{% if fl_single_state=='"NORTH DAKOTA"' %} selected="selected" {% endif %}>NORTH DAKOTA</option>
+            <option value="NEBRASKA" {% if fl_single_state=='"NEBRASKA"' %} selected="selected" {% endif %}>NEBRASKA</option>
+            <option value="NEW HAMPSHIRE" {% if fl_single_state=='"NEW HAMPSHIRE"' %} selected="selected" {% endif %}>NEW HAMPSHIRE</option>
+            <option value="NEW JERSEY" {% if fl_single_state=='"NEW JERSEY"' %} selected="selected" {% endif %}>NEW JERSEY</option>
+            <option value="NEW MEXICO" {% if fl_single_state=='"NEW MEXICO"' %} selected="selected" {% endif %}>NEW MEXICO</option>
+            <option value="NEVADA" {% if fl_single_state=='"NEVADA"' %} selected="selected" {% endif %}>NEVADA</option>
+            <option value="NEW YORK" {% if fl_single_state=='"NEW YORK"' %} selected="selected" {% endif %}>NEW YORK</option>
+            <option value="OHIO" {% if fl_single_state=='"OHIO"' %} selected="selected" {% endif %}>OHIO</option>
+            <option value="OKLAHOMA" {% if fl_single_state=='"OKLAHOMA"' %} selected="selected" {% endif %}>OKLAHOMA</option>
+            <option value="OREGON" {% if fl_single_state=='"OREGON"' %} selected="selected" {% endif %}>OREGON</option>
+            <option value="PENNSYLVANIA" {% if fl_single_state=='"PENNSYLVANIA"' %} selected="selected" {% endif %}>PENNSYLVANIA</option>
+            <option value="RHODE ISLAND" {% if fl_single_state=='"RHODE ISLAND"' %} selected="selected" {% endif %}>RHODE ISLAND</option>
+            <option value="SOUTH CAROLINA" {% if fl_single_state=='"SOUTH CAROLINA"' %} selected="selected" {% endif %}>SOUTH CAROLINA</option>
+            <option value="SOUTH DAKOTA" {% if fl_single_state=='"SOUTH DAKOTA"' %} selected="selected" {% endif %}>SOUTH DAKOTA</option>
+            <option value="TENNESSEE" {% if fl_single_state=='"TENNESSEE"' %} selected="selected" {% endif %}>TENNESSEE</option>
+            <option value="TEXAS" {% if fl_single_state=='"TEXAS"' %} selected="selected" {% endif %}>TEXAS</option>
+            <option value="UTAH" {% if fl_single_state=='"UTAH"' %} selected="selected" {% endif %}>UTAH</option>
+            <option value="VIRGINIA" {% if fl_single_state=='"VIRGINIA"' %} selected="selected" {% endif %}>VIRGINIA</option>
+            <option value="VERMONT" {% if fl_single_state=='"VERMONT"' %} selected="selected" {% endif %}>VERMONT</option>
+            <option value="WASHINGTON" {% if fl_single_state=='"WASHINGTON"' %} selected="selected" {% endif %}>WASHINGTON</option>
+            <option value="WISCONSIN" {% if fl_single_state=='"WISCONSIN"' %} selected="selected" {% endif %}>WISCONSIN</option>
+            <option value="WEST VIRGINIA" {% if fl_single_state=='"WEST VIRGINIA"' %} selected="selected" {% endif %}>WEST VIRGINIA</option>
+            <option value="WYOMING" {% if fl_single_state=='"WYOMING"' %} selected="selected" {% endif %}>WYOMING</option>
+		</select>
+		</div>
+		<br>
+		<p><p> 
+        <hr>
+
+       <div class="form-group">
+            <label for="Make Selections"><b>Make Appropriate Selections</b></label><br>
+              <input type="checkbox" id="fl_use_wipe" name="fl_use_wipe" {% if fl_use_wipe=="1" %} checked="checked" {% endif %}>
+              <label for="fl_use_wipe"> Use Splash Screens/Screen Wipes</label><br>
+              <input type="checkbox" id="fl_outline" name="fl_outline" {% if fl_outline=="1" %} checked="checked" {% endif %}>
+              <label for="fl_outline"> Draw Outline of State</label><br>
+              <input type="checkbox" id="fl_show_title" name="fl_show_title" {% if fl_show_title=="1" %} checked="checked" {% endif %}>
+              <label for="fl_show_title"> Display State Name</label><br>
+              <input type="checkbox" id="fl_time_display" name="fl_time_display" {% if fl_time_display=="1" %} checked="checked" {% endif %}>
+              <label for="fl_time_display"> Display Time Between Updates</label><br>
+              <input type="checkbox" id="fl_display_lightning" name="fl_display_lightning" {% if fl_display_lightning=="1" %} checked="checked" {% endif %}>
+              <label for="fl_display_lightning"> Highlight Airports with Lightning in Vicinity</label><br>
+            
+              <input type="checkbox" id="fl_big_ltng_flash" name="fl_big_ltng_flash" {% if fl_big_ltng_flash=="1" %} checked="checked" {% endif %}>
+              <label for="fl_big_ltng_flash"> Display Large Lightning Flash</label><br>            
+            
+              <input type="checkbox" id="fl_display_hiwinds" name="fl_display_hiwinds" {% if fl_display_hiwinds=="1" %} checked="checked" {% endif %}>
+              <label for="fl_display_hiwinds"> Highlight Airports with High Winds</label><br>
+              
+            <p hidden>              
+              <input type="checkbox" id="fl_hiwinds_single" name="fl_hiwinds_single" {% if fl_hiwinds_single=="1" %} checked="checked" {% endif %}>
+              <label for="fl_hiwinds_single"> Display High Winds Individually (takes longer)</label><br>
+             </p>
+            </div>
+          <hr> 
+          
+        <label for="fl_ltng_flash_size"><b>Choose Size of Large Lightning Flash:</b></label><br>
+		<select name="fl_ltng_flash_size" id="fl_ltng_flash_size">
+		  <option value="20" {% if fl_ltng_flash_size=="20" %} selected="selected" {% endif %}>20</option>
+		  <option value="15" {% if fl_ltng_flash_size=="15" %} selected="selected" {% endif %}>15</option>
+		  <option value="12" {% if fl_ltng_flash_size=="12" %} selected="selected" {% endif %}>12</option>
+		  <option value="8" {% if fl_ltng_flash_size=="8" %} selected="selected" {% endif %}>8</option>
+		  <option value="5" {% if fl_ltng_flash_size=="5" %} selected="selected" {% endif %}>5</option>
+		  <option value="4" {% if fl_ltng_flash_size=="4" %} selected="selected" {% endif %}>4</option>
+		  <option value="3" {% if fl_ltng_flash_size=="3" %} selected="selected" {% endif %}>3</option>
+		  <option value="2" {% if fl_ltng_flash_size=="2" %} selected="selected" {% endif %}>2</option>
+		  <option value="1" {% if fl_ltng_flash_size=="1" %} selected="selected" {% endif %}>1</option>
+		</select>
+		<br><p><p> 
+
+        <label for="fl_metar_age"><b>Choose Age of Metar (In Hours):</b></label><br>
+		<select name="fl_metar_age" id="fl_metar_age">
+		  <option value="3" {% if fl_metar_age=="3" %} selected="selected" {% endif %}>3 Hours</option>
+		  <option value="2.5" {% if fl_metar_age=="2.5" %} selected="selected" {% endif %}>2.5 Hours</option>
+		  <option value="2" {% if fl_metar_age=="2" %} selected="selected" {% endif %}>2 Hours</option>
+		  <option value="1.5" {% if fl_metar_age=="1.5" %} selected="selected" {% endif %}>1.5 Hours</option>
+		  <option value="1" {% if fl_metar_age=="1" %} selected="selected" {% endif %}>1 Hour</option>
+		  <option value=".5" {% if fl_metar_age==".5" %} selected="selected" {% endif %}>.5 Hour</option>
+		</select>
+		<br><p><p> 
+
+        <label for="fl_interval"><b>Choose How Long Between States (In Minutes):</b></label><br>
+		<select name="fl_interval" id="fl_interval">
+		  <option value="60" {% if fl_interval=="60" %} selected="selected" {% endif %}>1 Minute</option>
+		  <option value="180" {% if fl_interval=="180" %} selected="selected" {% endif %}>3 Minutes</option>
+		  <option value="300" {% if fl_interval=="300" %} selected="selected" {% endif %}>5 Minutes</option>
+		  <option value="600" {% if fl_interval=="600" %} selected="selected" {% endif %}>10 Minutes</option>
+		  <option value="900" {% if fl_interval=="900" %} selected="selected" {% endif %}>15 Minutes</option>
+		  <option value="1800" {% if fl_interval=="1800" %} selected="selected" {% endif %}>30 Minutes</option>
+		  <option value="3600" {% if fl_interval=="3600" %} selected="selected" {% endif %}>60 Minutes</option>
+		</select>
+		<br><p> 
+
+        <label for="fl_max_windspeedkt"><b>Choose Windspeed to Highlight Airport (In kts):</b></label><br>
+		<select name="fl_max_windspeedkt" id="fl_max_windspeedkt">
+		  <option value="20" {% if fl_max_windspeedkt=="20" %} selected="selected" {% endif %}>20 kts</option>
+		  <option value="15" {% if fl_max_windspeedkt=="15" %} selected="selected" {% endif %}>15 kts</option>
+		  <option value="12" {% if fl_max_windspeedkt=="12" %} selected="selected" {% endif %}>12 kts</option>
+		  <option value="10" {% if fl_max_windspeedkt=="10" %} selected="selected" {% endif %}>10 kts</option>
+		  <option value="8" {% if fl_max_windspeedkt=="8" %} selected="selected" {% endif %}>8 kts</option>
+		  <option value="5" {% if fl_max_windspeedkt=="5" %} selected="selected" {% endif %}>5 kts</option>
+		</select>
+		<br>
+        <hr>
+        
+        <div class="form-group1">
+        <label for="form-group1"><b>Brightness Settings (0% to 100%):</b></label><br>
+          <label for="fl_default_brightness">Default Map Brightness (default: 50%):</label>
+          <input type="range" id="fl_default_brightness" name="fl_default_brightness" value={{ fl_default_brightness }} min="0" max="100" oninput="this.nextElementSibling.value = this.value">
+          <output>{{ fl_default_brightness }}</output>%
+        <br>
+
+        <p hidden>
+          <label for="fl_ltng_brightness">Lightning Brightness (default: 100%):</label>
+          <input type="range" id="fl_ltng_brightness" name="fl_ltng_brightness" value={{ fl_ltng_brightness }} min="0" max="100" oninput="this.nextElementSibling.value = this.value">
+          <output>{{ fl_ltng_brightness }}</output>%
+        </p>
+
+          <label for="fl_hiwind_brightness">High Winds Brightness (default: 20%):</label>
+          <input type="range" id="fl_hiwind_brightness" name="fl_hiwind_brightness" value={{ fl_hiwind_brightness }} min="0" max="100" oninput="this.nextElementSibling.value = this.value">
+          <output>{{ fl_hiwind_brightness }}</output>%
+		<br>
+
+        <p hidden>
+          <label for="fl_clock_brightness">Clock Numbers Brightness (default: 90%):</label>
+          <input type="range" id="fl_clock_brightness" name="fl_clock_brightness" value={{ fl_clock_brightness }} min="0" max="100" oninput="this.nextElementSibling.value = this.value">
+          <output>{{ fl_clock_brightness }}</output>%
+        </p>
+          
+		<br>
+		</div>
+        <hr>
+
+        <button class="btn btn-primary" type="submit">Submit</button>
+        <p>
+		
+
+
+	<!-- Flash message via flask and jinja to announce what is currently being displayed -->
+	<div class="flashes">
+	{% with messages = get_flashed_messages() %}
+	  {% if messages %}
+		<div class=flashes>
+		{% for message in messages %}
+		  </div><b class="text-danger">    {{ message }}</b>
+		{% endfor %}
+
+	  {% endif %}
+	{% endwith %}
+	</div>
+	
+	</div>
+    </form>
+    
+<!--
+	<div id="show0" class="myDiv">
+     <span><p>
+	       <img src="./static/layout0.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show1" class="myDiv">
+     <span><p>
+	       <img src="./static/layout1.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show2" class="myDiv">
+     <span><p>
+	       <img src="./static/layout2.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show3" class="myDiv">
+     <span><p>
+	       <img src="./static/layout3.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show4" class="myDiv">
+     <span><p>
+	       <img src="./static/layout4.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show5" class="myDiv">
+     <span><p>
+	       <img src="./static/layout5.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show6" class="myDiv">
+     <span><p>
+	       <img src="./static/layout6.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+	<div id="show7" class="myDiv">
+     <span><p>
+	       <img src="./static/layout7.jpg" width="300"><p><p>
+		   </span>
+	 </div>
+-->
+
+
+
+</div>
+</div>				
+
+</body>
+</html>
