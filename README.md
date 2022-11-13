@@ -50,25 +50,25 @@ This allows any geographic area such as one defined by a sectional, or even non-
 Command line variables can be passed to tweak the behavior of the program.
 Example: 'sudo python3 ledmap.py interval=120 use_wipe=0 time_display=0'
 This command will run the software with 2 min intervals between updates with no wipes and no clock
-Do not add spaces around the '=' sign. Below is the list of available commands;
-   outline=1             Show outline of state or not. 1=Yes, 0=No
-   point_or_line=1       0 = uses points, 1 = uses lines to draw outline of state.
-   metar_age="2.5"       in hours, dictates how old the returned metars can be 2.5 hours is typical
-   delay=.0001           .0001 = 1 microsecond, delay for painting pixels in wipes
-   interval=60           60 seconds, time states and going to FAA for updated metar data
-   use_wipe=1            1 = yes, 0 = no
-   show_title=1          1 = yes, 0 = no
-   ltng_brightness=100   Lightning Brightness in percent (0% to 100%).
-   hiwind_brightness=10  Hi Winds Brightness in percent (0% to 100%).
-   default_brightness=40 Normal Brightness in percent (0% to 100%).
-   max_windspeedkt=10    in Knots, used to determine when an airport should flash to show high windspeed
-   time_display=1        1 = yes, 0 = no
-   state_list_to_use=1   Choose which list of states to display. See file scalebystate.py for lists
-   display_lightning=1   1 = yes, 0 = no
-   display_hiwinds=1     1 = yes, 0 = no
-   hiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.
-   clock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data
-
+Do not add spaces around the '=' sign. Below is the list of available commands;<br>
+   outline=1             Show outline of state or not. 1=Yes, 0=No<br>
+   point_or_line=1       0 = uses points, 1 = uses lines to draw outline of state.<br>
+   metar_age="2.5"       in hours, dictates how old the returned metars can be 2.5 hours is typical<br>
+   delay=.0001           .0001 = 1 microsecond, delay for painting pixels in wipes<br>
+   interval=60           60 seconds, time states and going to FAA for updated metar data<br>
+   use_wipe=1            1 = yes, 0 = no<br>
+   show_title=1          1 = yes, 0 = no<br>
+   ltng_brightness=100   Lightning Brightness in percent (0% to 100%).<br>
+   hiwind_brightness=10  Hi Winds Brightness in percent (0% to 100%).<br>
+   default_brightness=40 Normal Brightness in percent (0% to 100%).<br>
+   max_windspeedkt=10    in Knots, used to determine when an airport should flash to show high windspeed<br>
+   time_display=1        1 = yes, 0 = no<br>
+   state_list_to_use=1   Choose which list of states to display. See file scalebystate.py for lists<br>
+   display_lightning=1   1 = yes, 0 = no<br>
+   display_hiwinds=1     1 = yes, 0 = no<br>
+   hiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.<br>
+   clock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data<br>
+<br>
 This software uses flask to create a web admin page that will control the behavior for the display.
 To access the admin page enter the IP address for the RPi and append ':5000' to it.
 For example, if the RPi is assigned the IP address, 192.168.0.32, then add ':5000' and enter;
