@@ -28,7 +28,7 @@ To install; (Taken from https://howchoo.com/pi/raspberry-pi-led-matrix-panel)<br
   <li>cd rpi-rgb-led-matrix<br>
   <li>make build-python PYTHON=$(which python3)<br>
   <li>sudo make install-python PYTHON=$(which python3)<br>
-</ul><br>
+</ul>
 The script uses json files ('statelatlon.json.txt' & 'gz_2010_us_oulint_20m.json')
 that have each state's lon/lat values to create the outline of each state and USA.
 These files were found online at https://eric.clst.org/tech/usgeojson/ and
@@ -68,7 +68,7 @@ Do not add spaces around the '=' sign. Below is the list of available commands;<
    <li>display_hiwinds=1     1 = yes, 0 = no<br>
    <li>hiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.<br>
    <li>clock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data<br>
-</ul><br>
+</ul>
 This software uses flask to create a web admin page that will control the behavior for the display.
 To access the admin page enter the IP address for the RPi and append ':5000' to it.
 For example, if the RPi is assigned the IP address, 192.168.0.32, then add ':5000' and enter;
