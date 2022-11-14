@@ -34,6 +34,7 @@ that have each state's lon/lat values to create the outline of each state and US
 These files were found online at https://eric.clst.org/tech/usgeojson/ and
 https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_USA_0.json
 <p>
+
 Another file; 'scalebystate.py' holds the State's scaling factors. This is needed to make
 the state look properly proportioned on the display depending on size of LED Matrix used.
 Values can be changed. There is a list for square displays and one for rectangular displays.
@@ -68,7 +69,8 @@ Do not add spaces around the '=' sign. Below is the list of available commands;<
    <li>display_hiwinds=1     1 = yes, 0 = no<br>
    <li>hiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.<br>
    <li>clock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data<br>
-</ul><br>
+</ul>
+
 This software uses flask to create a web admin page that will control the behavior for the display.
 To access the admin page enter the IP address for the RPi and append ':5000' to it.
 For example, if the RPi is assigned the IP address, 192.168.0.32, then add ':5000' and enter;
