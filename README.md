@@ -10,10 +10,10 @@ RPi Zero W works well, but slow to boot. RPi 3B works quite well and as
 imagined, RPi 4's work the best.
 
 FAA XML data is downloaded and each airport's Lon/Lat is then scaled to fit the display screen.
-  Format [lon,lat] = display's [x,y]
+  &emspFormat [lon,lat] = display's [x,y]
 Positive values of latitude are north of the equator, negative values to the south.
 For Longitude, most programs use negative values.
-  (from https://www.maptools.com/tutorials/lat_lon/formats)
+  &emsp(from https://www.maptools.com/tutorials/lat_lon/formats)
 
 Use LED Matrix display available from Aliexpess and Adafruit.
 Prices seem to be all over the place. I found Aliexpress to be the least expensive.
@@ -23,11 +23,11 @@ https://www.adafruit.com/product/3649
 This uses the awesome library rgbmatrix; https://github.com/hzeller/rpi-rgb-led-matrix
 Visit this site for details on connecting these displays using an adapter/hat.
 To install; (Taken from https://howchoo.com/pi/raspberry-pi-led-matrix-panel)<br>
-  sudo apt-get update  && sudo apt-get install -y git python3-dev python3-pillow<br>
-  git clone https://github.com/hzeller/rpi-rgb-led-matrix.git<br>
-  cd rpi-rgb-led-matrix<br>
-  make build-python PYTHON=$(which python3)<br>
-  sudo make install-python PYTHON=$(which python3)<br>
+  &emspsudo apt-get update  && sudo apt-get install -y git python3-dev python3-pillow<br>
+  &emspgit clone https://github.com/hzeller/rpi-rgb-led-matrix.git<br>
+  &emspcd rpi-rgb-led-matrix<br>
+  &emspmake build-python PYTHON=$(which python3)<br>
+  &emspsudo make install-python PYTHON=$(which python3)<br>
 
 The script uses json files ('statelatlon.json.txt' & 'gz_2010_us_oulint_20m.json')
 that have each state's lon/lat values to create the outline of each state and USA.
@@ -51,23 +51,23 @@ Command line variables can be passed to tweak the behavior of the program.
 Example: 'sudo python3 ledmap.py interval=120 use_wipe=0 time_display=0'
 This command will run the software with 2 min intervals between updates with no wipes and no clock
 Do not add spaces around the '=' sign. Below is the list of available commands;<br>
-   outline=1             Show outline of state or not. 1=Yes, 0=No<br>
-   point_or_line=1       0 = uses points, 1 = uses lines to draw outline of state.<br>
-   metar_age="2.5"       in hours, dictates how old the returned metars can be 2.5 hours is typical<br>
-   delay=.0001           .0001 = 1 microsecond, delay for painting pixels in wipes<br>
-   interval=60           60 seconds, time states and going to FAA for updated metar data<br>
-   use_wipe=1            1 = yes, 0 = no<br>
-   show_title=1          1 = yes, 0 = no<br>
-   ltng_brightness=100   Lightning Brightness in percent (0% to 100%).<br>
-   hiwind_brightness=10  Hi Winds Brightness in percent (0% to 100%).<br>
-   default_brightness=40 Normal Brightness in percent (0% to 100%).<br>
-   max_windspeedkt=10    in Knots, used to determine when an airport should flash to show high windspeed<br>
-   time_display=1        1 = yes, 0 = no<br>
-   state_list_to_use=1   Choose which list of states to display. See file scalebystate.py for lists<br>
-   display_lightning=1   1 = yes, 0 = no<br>
-   display_hiwinds=1     1 = yes, 0 = no<br>
-   hiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.<br>
-   clock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data<br>
+   &emspoutline=1             Show outline of state or not. 1=Yes, 0=No<br>
+   &emsppoint_or_line=1       0 = uses points, 1 = uses lines to draw outline of state.<br>
+   &emspmetar_age="2.5"       in hours, dictates how old the returned metars can be 2.5 hours is typical<br>
+   &emspdelay=.0001           .0001 = 1 microsecond, delay for painting pixels in wipes<br>
+   &emspinterval=60           60 seconds, time states and going to FAA for updated metar data<br>
+   &emspuse_wipe=1            1 = yes, 0 = no<br>
+   &emspshow_title=1          1 = yes, 0 = no<br>
+   &emspltng_brightness=100   Lightning Brightness in percent (0% to 100%).<br>
+   &emsphiwind_brightness=10  Hi Winds Brightness in percent (0% to 100%).<br>
+   &emspdefault_brightness=40 Normal Brightness in percent (0% to 100%).<br>
+   &emspmax_windspeedkt=10    in Knots, used to determine when an airport should flash to show high windspeed<br>
+   &emsptime_display=1        1 = yes, 0 = no<br>
+   &emspstate_list_to_use=1   Choose which list of states to display. See file scalebystate.py for lists<br>
+   &emspdisplay_lightning=1   1 = yes, 0 = no<br>
+   &emspdisplay_hiwinds=1     1 = yes, 0 = no<br>
+   &emsphiwinds_single=1      1 = draw high wind airports individually, 0 = draw them all at once.<br>
+   &emspclock_only = 0        1 = yes, 0 = no, this will only display the clock, and no metar data<br>
 <br>
 This software uses flask to create a web admin page that will control the behavior for the display.
 To access the admin page enter the IP address for the RPi and append ':5000' to it.
