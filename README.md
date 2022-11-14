@@ -33,7 +33,7 @@ The script uses json files ('statelatlon.json.txt' & 'gz_2010_us_oulint_20m.json
 that have each state's lon/lat values to create the outline of each state and USA.
 These files were found online at https://eric.clst.org/tech/usgeojson/ and
 https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_USA_0.json
-
+<br>
 Another file; 'scalebystate.py' holds the State's scaling factors. This is needed to make
 the state look properly proportioned on the display depending on size of LED Matrix used.
 Values can be changed. There is a list for square displays and one for rectangular displays.
