@@ -10,10 +10,10 @@ RPi Zero W works well, but slow to boot. RPi 3B works quite well and as
 imagined, RPi 4's work the best.
 
 FAA XML data is downloaded and each airport's Lon/Lat is then scaled to fit the display screen.
-  &emspFormat [lon,lat] = display's [x,y]
+  <p>&emsp</p>Format [lon,lat] = display's [x,y]
 Positive values of latitude are north of the equator, negative values to the south.
 For Longitude, most programs use negative values.
-  &emsp(from https://www.maptools.com/tutorials/lat_lon/formats)
+  <p>&emsp</p>(from https://www.maptools.com/tutorials/lat_lon/formats)
 
 Use LED Matrix display available from Aliexpess and Adafruit.
 Prices seem to be all over the place. I found Aliexpress to be the least expensive.
