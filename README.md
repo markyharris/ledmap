@@ -22,13 +22,13 @@ https://www.adafruit.com/product/3649
 
 This uses the awesome library rgbmatrix; https://github.com/hzeller/rpi-rgb-led-matrix
 Visit this site for details on connecting these displays using an adapter/hat.
-To install; (Taken from https://howchoo.com/pi/raspberry-pi-led-matrix-panel)<br>
-  sudo apt-get update  && sudo apt-get install -y git python3-dev python3-pillow<br>
-  git clone https://github.com/hzeller/rpi-rgb-led-matrix.git<br>
-  cd rpi-rgb-led-matrix<br>
-  make build-python PYTHON=$(which python3)<br>
-  sudo make install-python PYTHON=$(which python3)<br>
-
+To install; (Taken from https://howchoo.com/pi/raspberry-pi-led-matrix-panel)<br><ul>
+  <li>sudo apt-get update  && sudo apt-get install -y git python3-dev python3-pillow<br>
+  <li>git clone https://github.com/hzeller/rpi-rgb-led-matrix.git<br>
+  <li>cd rpi-rgb-led-matrix<br>
+  <li>make build-python PYTHON=$(which python3)<br>
+  <li>sudo make install-python PYTHON=$(which python3)<br>
+</ul><br>
 The script uses json files ('statelatlon.json.txt' & 'gz_2010_us_oulint_20m.json')
 that have each state's lon/lat values to create the outline of each state and USA.
 These files were found online at https://eric.clst.org/tech/usgeojson/ and
