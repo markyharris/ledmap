@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
+# Version 1.2
 #
+# UPDATED TO WORK WITH NEW FAA API. https://aviationweather.gov/data/api/#/Dataserver/dataserverMetars
 # LED Map by Mark Harris
 # Uses an LED Matrix to display the outline of a state (or US, or custom geography)
 # along with the territory's airports METAR data.
@@ -87,6 +89,7 @@ from datetime import datetime
 from datetime import time as time_
 import string
 import sys
+import os
 import random
 import socket
 import flask                       # sudo apt install python3-flask
@@ -108,8 +111,8 @@ from PIL import ImageDraw
 # See https://github.com/hzeller/rpi-rgb-led-matrix/blob/master/img/coordinates.png
 DISPLAY_X = 64   # Set display size. Using P3 RGB Pixel panel HD Display 64x32 dot Matrix SMD2121 Led Module
 DISPLAY_Y = 64   # https://www.aliexpress.com/item/2251832542670680.html?spm=a2g0o.order_list.0.0.18751802bvLio7&gatewayAdapt=4itemAdapt 
-CHAIN_LENGTH = 3 # Number of daisy-chained panels. (Default: 1).
-PARALLEL = 2     # parallel chains. range=1..3, See https://github.com/hzeller/rpi-rgb-led-matrix/tree/master/adapter
+CHAIN_LENGTH = 4 # Number of daisy-chained panels. (Default: 1).
+PARALLEL = 3     # parallel chains. range=1..3, See https://github.com/hzeller/rpi-rgb-led-matrix/tree/master/adapter
 
 # Constants to define overall size of display(s). DON'T EDIT
 # i.e. if 2 64x64 are connected together then chain length should be 2 and size would then be 64x128
@@ -152,6 +155,8 @@ flat_lon = []
 rand_list = []        # list to create random list of display pixels for wipe
 info = []
 ap_ltng_dict = {}     # capture airports reporting Tstorms and lightning in dictionary
+ap_snow_dict = {}     # capture airports reporting snow in dictionary
+ap_rain_dict = {}     # capture airports reporting rain in dictionary
 ap_wind_dict = {}     # capture airports whose winds are higher than max_windspeedkt
 
 #LED Cycle times - Controls blink rates. Can change if necessary.
@@ -205,8 +210,19 @@ clock_text_color = RED  # Set the color of the Clock Numbers
 clock_border_color = (0,0,235) # dimmer blue used when clock only is displayed
 clear_toggle = 1
 
+# Weather Designators used in Metars
 # Thunderstorm and lightning METAR weather description codes that denote lightning in the area.
 wx_lghtn_ck = ["TS", "TSRA", "TSGR", "+TSRA", "TSRG", "FC", "SQ", "VCTS", "VCTSRA", "VCTSDZ", "LTG"]
+#Snow in various forms
+wx_snow_ck = ["BLSN", "DRSN", "-RASN", "RASN", "+RASN", "-SN", "SN", "+SN", "SG", "IC", "PE", "PL", "-SHRASN", "SHRASN", "+SHRASN", "-SHSN", "SHSN", "+SHSN"]
+#Rain in various forms
+wx_rain_ck = ["-DZ", "DZ", "+DZ", "-DZRA", "DZRA", "-RA", "RA", "+RA", "-SHRA", "SHRA", "+SHRA", "VIRGA", "VCSH"]
+#Freezing Rain
+wx_frrain_ck = ["-FZDZ", "FZDZ", "+FZDZ", "-FZRA", "FZRA", "+FZRA"]
+#Dust Sand and/or Ash
+wx_dustsandash_ck = ["DU", "SA", "HZ", "FU", "VA", "BLDU", "BLSA", "PO", "VCSS", "SS", "+SS",]
+#Fog
+wx_fog_ck = ["BR", "MIFG", "VCFG", "BCFG", "PRFG", "FG", "FZFG"]
 
 # Create as many lists of states to display and store them in 'state_lists.py' and add name to list
 state_list = [state_single_0,state_misc_1,state_complete_2,state_northeast_3,state_southeast_4,\
@@ -217,7 +233,7 @@ state_list_to_use = state_list[9] # change the index to match the lists of lists
 # 'ap_user_dict' holds airports that the user populates.
 # 'ap_1700_dict' holds over 1700 airports in the lower 48 plus Alaska and Hawaii
 # 'ap_3000_dict' holds over 3000 airports in the lower 48 plus Alaska and Hawaii
-usa_ap_dict = ap_1700_dict # use 'ap_user_dict' or 'ap_1700_dict' or 'ap_3000_dict'
+usa_ap_dict = ap_3000_dict # use 'ap_user_dict' or 'ap_1700_dict' or 'ap_3000_dict'
 
 # Dimmer variables - To disable, set 'lights_out' and 'lights_on' to same time 
 now = datetime.now()          # Get current time and compare to timer setting
@@ -227,6 +243,60 @@ timeoff = lights_out
 end_time = lights_on
 dimmness = 4                 # this is a diviser to reduce default_brightness. ie. 40/4 = 10
 tmp_default_brightness = default_brightness # used for dimming routine
+
+# Icon Bitmaps
+# Create a grid of colors in a pictoral layout. 0 equals Black
+# Set size for X and Y indexed from 1
+Y = YELLOW
+W = WHITE
+B = BLUE
+G = GREY
+
+icon_light_size = [7,7]
+icon_lightning1 = [
+    0,0,0,Y,Y,Y,0,
+    0,0,Y,Y,Y,0,0,
+    0,Y,Y,0,0,0,0,
+    Y,Y,Y,Y,Y,Y,Y,
+    0,0,0,Y,Y,Y,0,
+    0,0,Y,Y,0,0,0,
+    0,Y,0,0,0,0,0,
+    ]
+
+icon_light_size = [6,8]
+icon_lightning = [
+    0,0,0,Y,Y,Y,
+    0,0,Y,Y,Y,0,
+    0,Y,Y,0,0,0,
+    Y,Y,Y,Y,Y,0,
+    0,0,Y,Y,0,0,
+    0,Y,Y,0,0,0,
+    0,Y,0,0,0,0,
+    Y,0,0,0,0,0,
+    ]
+
+icon_snow_size = [7,7]
+icon_snow = [
+    0,W,0,W,0,W,0,
+    W,W,0,W,0,W,W,
+    0,0,W,0,W,0,0,
+    W,W,0,W,0,W,W,
+    0,0,W,0,W,0,0,
+    W,W,0,W,0,W,W,
+    0,W,0,W,0,W,0,
+    ]
+
+
+icon_rain_size = [7,7]
+icon_rain = [
+    0,0,0,G,G,G,0,
+    0,G,G,G,G,G,G,
+    G,G,G,G,G,G,G,
+    G,G,G,G,G,G,G,
+    0,0,B,0,B,0,B,
+    0,B,0,B,0,B,0,
+    B,0,B,0,B,0,0,
+    ]
 
 # Process variables passed via command line, or web admin page
 # If new variables are to be used from the cmd line, add it to this list
@@ -304,6 +374,47 @@ else:
 #############
 # Functions #
 #############
+def disp_icon(x,y,icon,icon_size,iter=1,numflash=3):
+    global offscreen_canvas1
+    if numflash % 2 == 0: # force an odd number fo numflash
+        numflash = numflash - 1
+
+    i_width = icon_size[0]-1 # Set width of icon
+    i_height = icon_size[1]-1 # Set height of icon
+    i_x = 0
+    i_y = 0
+    offset_x = -int(i_width/2)-1 # Center the Icon over the airport
+    offset_y = -int(i_height/2) # Center the Icon over the airport
+    
+    for l in range(iter):    
+        offscreen_canvas1 = matrix.SwapOnVSync(offscreen_canvas1)
+        time.sleep(1)
+                
+        for j in icon:
+            if j == 0:
+                if i_x > i_width:
+                    i_x = 0
+                    i_y += 1
+                i_x += 1
+                continue
+            
+            r,g,b = j # get color of pixel to draw            
+            if i_x > i_width:
+                i_x = 0
+                i_y += 1
+            i_x += 1
+#            print(j,i_x,i_y) # debug
+            offscreen_canvas1.SetPixel(x+i_x+offset_x,y+i_y+offset_y,r,g,b)
+
+                
+        for j in range(numflash): # of flashes NOTE: Must be an Odd Number
+            offscreen_canvas1 = matrix.SwapOnVSync(offscreen_canvas1)
+            time.sleep(.1)
+            
+        time.sleep(2)
+#        offscreen_canvas1.Clear()
+
+
 def display_image(image=PATH+'static/us_sectional.jpg'):
     print("In Display Image")
     image = Image.open(image).convert('RGB')
@@ -355,13 +466,16 @@ def clock():
         r1,g1,b1 = BLACK
         textColor1 = graphics.Color(r1,g1,b1)
         text_len = graphics.DrawText(matrix, font0, text_width, font_height, textColor, strtime)
-        
-        start_pos1 = ((text_width - text_len)/2)+1
-        graphics.DrawText(matrix, font0, start_pos1, (TOTAL_Y/2)+(font_height/2)-3, textColor1, strtime) # (matrix, font, pos, 10, textColor, STATE)                
+        time_dropshadow = 3
+                
+        # Draw Drop Shadow
+        start_pos1 = ((text_width - text_len)/2)+(5+time_dropshadow)
+        graphics.DrawText(matrix, font0, start_pos1, (TOTAL_Y/2)+(font_height/2)-(5-time_dropshadow), textColor1, strtime) # (matrix, font, pos, 10, textColor, STATE)                
 
+        # Draw Time
         matrix.brightness = clock_brightness
-        start_pos = (text_width - text_len)/2
-        graphics.DrawText(matrix, font0, start_pos, (TOTAL_Y/2)+(font_height/2)-4, textColor, strtime) # (matrix, font, pos, 10, textColor, STATE)
+        start_pos = ((text_width - text_len)/2)+5
+        graphics.DrawText(matrix, font0, start_pos, (TOTAL_Y/2)+(font_height/2)-5, textColor, strtime) # (matrix, font, pos, 10, textColor, STATE)
         time.sleep(1)
         
         if toggle_sec:
@@ -435,11 +549,14 @@ def display_time(display_length=5):
     r1,g1,b1 = BLACK
     textColor1 = graphics.Color(r1,g1,b1)
     text_len = graphics.DrawText(matrix, font0, text_width, font_height, textColor, strtime)
+    time_dropshadow = 5
     
-    start_pos1 = ((text_width - text_len)/2)+1
-    graphics.DrawText(matrix, font0, start_pos1, (TOTAL_Y/2)+(font_height/2)-4, textColor1, strtime) # (matrix, font, pos, 10, textColor, STATE)                
+    # Draw drop shadow
+    start_pos1 = ((text_width - text_len)/2)+(5+time_dropshadow)
+    graphics.DrawText(matrix, font0, start_pos1, (TOTAL_Y/2)+(font_height/2)-(5-time_dropshadow), textColor1, strtime) # (matrix, font, pos, 10, textColor, STATE)                
 
-    start_pos = (text_width - text_len)/2
+    # Draw time
+    start_pos = ((text_width - text_len)/2)+5
     graphics.DrawText(matrix, font0, start_pos, (TOTAL_Y/2)+(font_height/2)-5, textColor, strtime) # (matrix, font, pos, 10, textColor, STATE)
 
     matrix.brightness = default_brightness
@@ -461,7 +578,7 @@ def display_title():
     text_len = graphics.DrawText(matrix, font, text_width, font_height, textColor, tmp_state)
     if num_words == 1: #text_len < matrix.width:
         if text_len < matrix.width:
-            start_pos = ((text_width - text_len)/2)+1
+            start_pos = ((text_width - text_len)/2)+2
             graphics.DrawText(matrix, font, start_pos, (TOTAL_Y/2)+4, textColor, tmp_state) # (matrix, font, pos, 10, textColor, STATE)
         else:
             text_len = graphics.DrawText(matrix, font2, text_width, (TOTAL_Y/2)-6, textColor, tmp_state)
@@ -470,13 +587,13 @@ def display_title():
  
     else:
         word1, word2 = tmp_state.split()
-        text_len = graphics.DrawText(matrix, font, text_width, 10, textColor, word1)
+        text_len = graphics.DrawText(matrix, font, text_width, font_height, textColor, word1)
         start_pos = (text_width - text_len)/2
-        graphics.DrawText(matrix, font, start_pos, (TOTAL_Y/2)-6, textColor, word1) # (matrix, font, pos, 10, textColor, STATE)
+        graphics.DrawText(matrix, font, start_pos, (TOTAL_Y/2)-(font_height/4), textColor, word1) # (matrix, font, pos, 10, textColor, STATE)
 
-        text_len = graphics.DrawText(matrix, font, text_width, 25, textColor, word2)
+        text_len = graphics.DrawText(matrix, font, text_width, font_height, textColor, word2)
         start_pos = (text_width - text_len)/2
-        graphics.DrawText(matrix, font, start_pos, (TOTAL_Y/2)+8, textColor, word2) # (matrix, font, pos, 10, textColor, STATE)
+        graphics.DrawText(matrix, font, start_pos, (TOTAL_Y/2)+(font_height/4), textColor, word2) # (matrix, font, pos, 10, textColor, STATE)
 
     time.sleep(3)
 
@@ -859,7 +976,9 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
     global clear_toggle
     if use_cache == 0:
         # Define URL to get weather METARS. If no METAR reported withing the last 2.5 hours, Airport LED will be white (nowx).
-        url = "https://www.aviationweather.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
+#        url = "https://aviationweather.gov/api/data/dataserver?requestType=retrieve&dataSource=metars&format=xml&mostRecent=true&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
+#        url = "https://aviationweather-cprk.ncep.noaa.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
+        url = "https://aviationweather.gov/api/data/metar?format=xml&hours=" +str(metar_age)+ "&ids="
         print("---> Loading METAR Data")
         
         if STATE == "CUSTOM":
@@ -892,7 +1011,7 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
                     try:
                         result = urllib.request.urlopen(url + stationList).read()
                         r = result.decode('UTF-8').splitlines()
-                        xmlStr = r[8:len(r)-2]
+                        xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
                         content.extend(xmlStr)
                         c = ['<x>']
                         c.extend(content)
@@ -925,7 +1044,7 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
                 print('Internet Available')
                 print(url) # Debug
                 r = result.decode('UTF-8').splitlines()
-                xmlStr = r[8:len(r)-2]
+                xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
                 content.extend(xmlStr)
                 c = ['<x>']
                 c.extend(content)
@@ -982,6 +1101,8 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
         # Grab wind direction from returned FAA data
         if metar.find('wind_dir_degrees') is None: # if wind speed is blank, then bypass
             winddirdegree = 0
+        elif metar.find('wind_dir_degrees').text == 'VRB':
+            winddirdegree = 0
         else:
             winddirdegree = int(metar.find('wind_dir_degrees').text)
             
@@ -994,8 +1115,18 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
         
         # Build list of airports that report tstorms and lightning in the area
         if wxstring in wx_lghtn_ck:
-#            print(stationId, wxstring) # debug
+            print(stationId, wxstring) # debug
             ap_ltng_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
+
+        # Build list of airports that report tstorms and lightning in the area
+        if wxstring in wx_snow_ck:
+#            print(stationId, wxstring) # debug
+            ap_snow_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
+
+        # Build list of airports that report tstorms and lightning in the area
+        if wxstring in wx_rain_ck:
+#            print(stationId, wxstring) # debug
+            ap_rain_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
 
         # Build list of airports whose winds are higher than max_windspeedkt
         if windspeedkt >= max_windspeedkt:
@@ -1102,9 +1233,11 @@ def draw_lightning(state):
  
         if big_ltng_flash == 1: # if big flash is chosen
             draw_apwx(state,1)
-            big_flash(pos1,pos2,1,ltng_flash_size) # Flash on
+            disp_icon(pos1,pos2,icon_lightning,icon_light_size,1)
+#            big_flash(pos1,pos2,1,ltng_flash_size) # Flash on
             time.sleep(.1)
-            big_flash(pos1,pos2,0,ltng_flash_size) # Flash off
+            disp_icon(pos1,pos2,icon_lightning,icon_light_size,1)
+#            big_flash(pos1,pos2,0,ltng_flash_size) # Flash off
             
         else:
             for j in range(2): # number of times to repeat the lightning flash
@@ -1245,7 +1378,7 @@ if __name__ == "__main__":
             font_height = 43
             font.LoadFont(PATH+"fonts/10x20.bdf")
         # 192x192
-        elif (TOTAL_X == 192 and TOTAL_Y == 192):
+        elif (TOTAL_X >= 192 and TOTAL_Y >= 192):
             font0.LoadFont(PATH+"fonts/myfont80.bdf")
             font.LoadFont(PATH+"fonts/myfont30.bdf")
             font_height = 75
@@ -1409,4 +1542,17 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n\nLED Map has been quit\n")
         sys.exit(0)
-
+        
+    except Exception as e:
+        time.sleep(2)
+        print("Error Occurred in Main While Loop")
+        exception_type, exception_object, exception_traceback = sys.exc_info()
+        filename = exception_traceback.tb_frame.f_code.co_filename
+        line_number = exception_traceback.tb_lineno
+        print(e)
+        print("Exception type: ", exception_type)
+        print("File name: ", filename)
+        print("Line number: ", line_number)
+        time.sleep(1) 
+        os.system("ps -ef | grep 'ledmap.py' | awk '{print $2}' | xargs sudo kill")
+        os.system('sudo reboot now')

@@ -1,0 +1,33 @@
+Power down service information
+from; https://forums.raspberrypi.com/viewtopic.php?t=147422
+
+
+Code: Select all and save as 'poweroff.service'. Available on github.
+  [Unit]
+  Description=Turn power off after shutdown
+  DefaultDependencies=no
+  Before=umount.target
+
+  [Service]
+  Type=oneshot
+  ExecStart=/usr/bin/python /opt/metar_poweroff/metar_poweroff.py
+
+  [Install]
+  WantedBy=halt.target poweroff.target
+
+
+Power Off Service installation:
+Copy 'poweroff.service' into /lib/systemd/system; 
+  cd ~
+  cd /lib/systemd/system 
+  sudo wget https://raw.githubusercontent.com/markyharris/ledmap/main/poweroff.service
+
+Enable the service by entering;
+  sudo systemctl enable poweroff.service
+
+Copy the python script 'ledmap_poweroff.py' into /opt/ledmap_poweroff;
+  cd ~  
+  cd /opt
+  sudo mkdir ledmap_poweroff
+  cd ledmap_poweroff
+  sudo wget https://raw.githubusercontent.com/markyharris/ledmap/main/ledmap_poweroff.py

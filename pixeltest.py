@@ -23,7 +23,7 @@ MAGENTA = (255, 0, 255) # used to denote LIFR flight category
 WHITE = (255, 255, 255) # used to denote No WX flight category
 YELLOW = (255,255,0)    # used to denote Lightning in vicinity of airport
 BLACK = (0, 0, 0)       # Used to clear display to black
-GREY = (50, 50, 50)     # Used as outline color
+GREY = (100, 100, 100)     # Used as outline color
 DKGREY = (10,10,10)     # Used as background for Clock display
 CYAN = (0,255,255)      # Misc color
 
@@ -45,6 +45,116 @@ options.brightness = default_brightness
 # If you add more displays and there is a 'tearing' effect, increase this number
 options.gpio_slowdown = 4  
 matrix = RGBMatrix(options=options)
+
+# Bitmap Icons
+# Create a grid of colors in a pictoral layout. 0 equals Black
+# Set size for X and Y indexed from 1
+Y = YELLOW
+W = WHITE
+B = BLUE
+G = GREY
+
+icon_lighttest_size = [20,20]
+icon_lightningtest = [
+    B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,
+    B,0,Y,Y,Y,Y,Y,Y,Y,B,B,0,Y,Y,Y,Y,Y,Y,Y,B,
+    B,Y,Y,Y,Y,Y,Y,Y,Y,B,B,Y,Y,Y,Y,Y,Y,Y,Y,B,
+    B,Y,Y,Y,Y,Y,Y,Y,Y,B,B,Y,Y,Y,Y,Y,Y,Y,Y,B,
+    B,0,0,Y,Y,Y,0,0,0,B,B,0,0,Y,Y,Y,0,0,0,B,
+    B,0,Y,Y,Y,0,0,0,0,B,B,0,Y,Y,Y,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,
+    B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,
+    B,0,Y,Y,Y,Y,Y,Y,Y,B,B,0,Y,Y,Y,Y,Y,Y,Y,B,
+    B,Y,Y,Y,Y,Y,Y,Y,Y,B,B,Y,Y,Y,Y,Y,Y,Y,Y,B,
+    B,Y,Y,Y,Y,Y,Y,Y,Y,B,B,Y,Y,Y,Y,Y,Y,Y,Y,B,
+    B,0,0,Y,Y,Y,0,0,0,B,B,0,0,Y,Y,Y,0,0,0,B,
+    B,0,Y,Y,Y,0,0,0,0,B,B,0,Y,Y,Y,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,Y,Y,0,0,0,0,0,0,B,B,Y,Y,0,0,0,0,0,0,B,
+    B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,B,
+    ]
+
+
+icon_light_size = [7,7]
+icon_lightning = [
+    0,0,0,Y,Y,Y,0,
+    0,0,Y,Y,Y,0,0,
+    0,Y,Y,0,0,0,0,
+    Y,Y,Y,Y,Y,Y,Y,
+    0,0,0,Y,Y,Y,0,
+    0,0,Y,Y,0,0,0,
+    0,Y,0,0,0,0,0,
+    ]
+
+
+icon_snow_size = [7,7]
+icon_snow = [
+    0,W,0,W,0,W,0,
+    W,W,0,W,0,W,W,
+    0,0,W,0,W,0,0,
+    W,W,0,W,0,W,W,
+    0,0,W,0,W,0,0,
+    W,W,0,W,0,W,W,
+    0,W,0,W,0,W,0,
+    ]
+
+
+icon_rain_size = [7,7]
+icon_rain = [
+    0,0,0,G,G,G,0,
+    0,G,G,G,G,G,G,
+    G,G,G,G,G,G,G,
+    G,G,G,G,G,G,G,
+    0,0,B,0,B,0,B,
+    0,B,0,B,0,B,0,
+    B,0,B,0,B,0,0,
+    ]
+
+
+def disp_icon(x,y,icon,icon_size,iter=1,numflash=3):
+    global offscreen_canvas1
+    if numflash % 2 == 0: # force an odd number fo numflash
+        numflash = numflash - 1
+
+    i_width = icon_size[0]-1 # Set width of icon
+    i_height = icon_size[1]-1 # Set height of icon
+    i_x = 0
+    i_y = 0
+    offset_x = -int(i_width/2)-1 # Center the Icon over the airport
+    offset_y = -int(i_height/2) # Center the Icon over the airport
+    
+    for l in range(iter):    
+        offscreen_canvas1 = matrix.SwapOnVSync(offscreen_canvas1)
+        time.sleep(1)
+                
+        for j in icon:
+            if j == 0:
+                if i_x > i_width:
+                    i_x = 0
+                    i_y += 1
+                i_x += 1
+                continue
+            
+            r,g,b = j # get color of pixel to draw            
+            if i_x > i_width:
+                i_x = 0
+                i_y += 1
+            i_x += 1
+#            print(j,i_x,i_y) # debug
+            offscreen_canvas1.SetPixel(x+i_x+offset_x,y+i_y+offset_y,r,g,b)
+
+                
+        for j in range(numflash): # of flashes NOTE: Must be an Odd Number
+            offscreen_canvas1 = matrix.SwapOnVSync(offscreen_canvas1)
+            time.sleep(.1)
+            
+        time.sleep(2)
+
+
 
 def rand(range_low, range_high):
     rand_num = random.randint(range_low, range_high)
@@ -138,6 +248,14 @@ if __name__ == "__main__":
     
     try:
         print("Press CTRL+C to stop.")
+#        clear()
+#        disp_icon(30,30,icon_lightning,icon_light_size,1)
+#        clear()
+#        disp_icon(30,30,icon_snow,icon_snow_size,1)
+#        clear()
+#        disp_icon(30,30,icon_rain,icon_rain_size,1)
+
+#        sys.exit()
 
         for j in range(5):
             X = random.randint(0,TOTAL_X)
@@ -146,7 +264,13 @@ if __name__ == "__main__":
 #            offscreen_canvas.Clear()
             tempdraw(X,Y)
 
-            big_flash(X,Y,2,5) # (x,y,iterations, size)
+#            big_flash(X,Y,2,5) # (x,y,iterations, size)
+            disp_icon(X,Y,icon_lightning,icon_light_size,1)
+            clear()
+            disp_icon(X,Y,icon_snow,icon_snow_size,1)
+            clear()
+            disp_icon(X,Y,icon_rain,icon_rain_size,1)
+
 
 #            tempdraw(X,Y)
             time.sleep(2)
