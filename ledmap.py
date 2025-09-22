@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # Version 1.2
 #
-# UPDATED TO WORK WITH NEW FAA API. https://aviationweather.gov/data/api/#/Dataserver/dataserverMetars
+# UPDATED TO WORK WITH NEW FAA API September 2025. https://aviationweather.gov/data/api/#/Dataserver/dataserverMetars
 # LED Map by Mark Harris
 # Uses an LED Matrix to display the outline of a state (or US, or custom geography)
 # along with the territory's airports METAR data.
@@ -971,16 +971,24 @@ def get_fc_color(flightcategory):
     return(color)
 
 
-def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = get new data online
-    global root # temp test
+def draw_apwx(STATE, use_cache=0):
+    global root
     global clear_toggle
+
     if use_cache == 0:
-        # Define URL to get weather METARS. If no METAR reported withing the last 2.5 hours, Airport LED will be white (nowx).
-#        url = "https://aviationweather.gov/api/data/dataserver?requestType=retrieve&dataSource=metars&format=xml&mostRecent=true&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
-#        url = "https://aviationweather-cprk.ncep.noaa.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
-        url = "https://aviationweather.gov/api/data/metar?format=xml&hours=" +str(metar_age)+ "&ids="
+        # New API endpoint – returns valid XML from the first byte
+        base_url = (
+            "https://aviationweather.gov/api/data/dataserver"
+            "?dataSource=metars"
+            "&requestType=retrieve"
+            "&format=xml"
+            "&mostRecentForEachStation=constraint"
+            f"&hoursBeforeNow={metar_age}"
+            "&stationString="
+        )
+
         print("---> Loading METAR Data")
-        
+
         if STATE == "CUSTOM":
             airports = custom_layout_dict['airports']
         elif STATE == "USA":
@@ -988,163 +996,97 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
         else:
             airports = state_ap_dict[STATE.upper()]
 
-        # Build url with over 300 airports if needed. More flexible and less limiting.
-        # Thank you Daniel from pilotmap.co for the change to this routine that handles maps with more than 300 airports.
-        contentStart = ['<response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:noNamespaceSchemaLocation="http://www.aviationweather.gov/static/adds/schema/metar1_2.xsd">']
         content = []
-        chunk = 0;
         stationList = ''
-        
+        chunk = 0
+
+        def fetch_chunk(stations):
+            """Fetch and parse one chunk of up to 300 stations."""
+            nonlocal content
+            url = base_url + stations
+            while True:
+                try:
+                    # Check internet availability
+                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                    s.connect(("8.8.8.8", 80))
+                    ipadd = s.getsockname()[0]
+                    print('RPI IP Address = ' + ipadd)
+
+                    result = urllib.request.urlopen(url).read()
+                    print('Internet Available')
+                    print(url)
+
+                    # Parse XML directly — no slicing
+                    xml_root = ET.fromstring(result)
+                    # Append METAR elements to content list
+                    for metar in xml_root.iter('METAR'):
+                        content.append(metar)
+                    break
+                except Exception as e:
+                    print(str(e))
+                    print('FAA Data is Not Available')
+                    print(url)
+                    time.sleep(5)
+
+        # Batch into chunks of ≤300 stations
         for airportcode in airports:
             stationList += airportcode + ','
             chunk += 1
-            if(chunk >= 300):
-                stationList = stationList[:-1] #strip trailing comma from string
-
-                while True: #check internet availability and retry if necessary. If house power outage, map may boot quicker than router.
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    ipadd = s.getsockname()[0] #get IP Address
-                    print('RPI IP Address = ' + ipadd) #log IP address when ever FAA weather update is retreived.
-
-                    result = ''
-                    try:
-                        result = urllib.request.urlopen(url + stationList).read()
-                        r = result.decode('UTF-8').splitlines()
-                        xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
-                        content.extend(xmlStr)
-                        c = ['<x>']
-                        c.extend(content)
-                        root = ET.fromstringlist(c + ['</x>'])
-                        print('Internet Available')
-                        break
-                    
-                    except Exception as e:
-                        print(str(e))
-                        print('FAA Data is Not Available')
-                        print(url + stationList)
-                        print(result)
-                        time.sleep(5)
-                        pass
-
+            if chunk >= 300:
+                fetch_chunk(stationList.rstrip(','))
                 stationList = ''
                 chunk = 0
 
-        stationList = stationList[:-1] #strip trailing comma from string
-        url = url + stationList         
-            
-        while True: #check internet availability and retry if necessary. If house power outage, map may boot quicker than router.
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ipadd = s.getsockname()[0] #get IP Address
-            print('RPI IP Address = ' + ipadd) #log IP address when ever FAA weather update is retreived.
+        # Fetch any remaining stations
+        if stationList:
+            fetch_chunk(stationList.rstrip(','))
 
-            try:
-                result = urllib.request.urlopen(url).read()
-                print('Internet Available')
-                print(url) # Debug
-                r = result.decode('UTF-8').splitlines()
-                xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
-                content.extend(xmlStr)
-                c = ['<x>']
-                c.extend(content)
-                root = ET.fromstringlist(c + ['</x>'])
-                break
-            except:
-                print('FAA Data is Not Available')
-                print(url) # debug
-                time.sleep(5)
-                pass
+        # Build a new XML root containing all METARs
+        root = ET.Element('AllMETARs')
+        for metar in content:
+            root.append(metar)
 
-        c = ['<x>']
-        c.extend(content)
-        root = ET.fromstringlist(c + ['</x>'])
-
-
-    # Grab the airport category, wind speed and various weather from the results given from FAA.
-    # Start of METAR decode routine if 'metar_taf' equals 1. Script will default to this routine without a rotary switch installed.
+    # Clear display if needed
     if outline == 0 and clear_toggle == 1:
         clear(BLACK)
         clear_toggle = 0
-        
+
+    # Process METAR data
     for metar in root.iter('METAR'):
-        stationId = metar.find('station_id').text
-        
-        # Grab flight category from returned FAA data
-        if metar.find('flight_category') is None: # if category is blank, then bypass
-            flightcategory = "NONE"
-        else:
-            flightcategory = metar.find('flight_category').text
-            
-        # Grab lat/lon of airport
-        if metar.find('latitude') is None: # if category is blank, then bypass
-            lat = "0.000"
-        else:
-            lat = metar.find('latitude').text           
-        if metar.find('longitude') is None: # if category is blank, then bypass
-            lon = "0.000"
-        else:
-            lon = metar.find('longitude').text
-            
-        # Grab wind speeds from returned FAA data
-        if metar.find('wind_speed_kt') is None: # if wind speed is blank, then bypass
-            windspeedkt = 0
-        else:
-            windspeedkt = int(metar.find('wind_speed_kt').text)
-            
-        # Grab wind gust from returned FAA data - Lance Blank
-        if metar.find('wind_gust_kt') is None: #if wind speed is blank, then bypass
-            windgustkt = 0
-        else:
-            windgustkt = int(metar.find('wind_gust_kt').text)
-            
-        # Grab wind direction from returned FAA data
-        if metar.find('wind_dir_degrees') is None: # if wind speed is blank, then bypass
-            winddirdegree = 0
-        elif metar.find('wind_dir_degrees').text == 'VRB':
+        stationId = metar.findtext('station_id', default="UNKNOWN")
+        flightcategory = metar.findtext('flight_category', default="NONE")
+        lat = metar.findtext('latitude', default="0.000")
+        lon = metar.findtext('longitude', default="0.000")
+        windspeedkt = int(metar.findtext('wind_speed_kt', default="0"))
+        windgustkt = int(metar.findtext('wind_gust_kt', default="0"))
+        winddirdegree = metar.findtext('wind_dir_degrees', default="0")
+        if winddirdegree == 'VRB':
             winddirdegree = 0
         else:
-            winddirdegree = int(metar.find('wind_dir_degrees').text)
-            
-        # Grab Weather info from returned FAA data
-        if metar.find('wx_string') is None: # if weather string is blank, then bypass
-            wxstring = "NONE"
-        else:
-            wxstring = metar.find('wx_string').text
-#            print(wxstring) # debug
-        
-        # Build list of airports that report tstorms and lightning in the area
+            winddirdegree = int(winddirdegree)
+        wxstring = metar.findtext('wx_string', default="NONE")
+
+        # Weather condition checks
         if wxstring in wx_lghtn_ck:
-            print(stationId, wxstring) # debug
-            ap_ltng_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
-
-        # Build list of airports that report tstorms and lightning in the area
+            ap_ltng_dict[stationId] = [lat, lon, flightcategory, windspeedkt]
         if wxstring in wx_snow_ck:
-#            print(stationId, wxstring) # debug
-            ap_snow_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
-
-        # Build list of airports that report tstorms and lightning in the area
+            ap_snow_dict[stationId] = [lat, lon, flightcategory, windspeedkt]
         if wxstring in wx_rain_ck:
-#            print(stationId, wxstring) # debug
-            ap_rain_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
-
-        # Build list of airports whose winds are higher than max_windspeedkt
+            ap_rain_dict[stationId] = [lat, lon, flightcategory, windspeedkt]
         if windspeedkt >= max_windspeedkt:
-            ap_wind_dict[stationId] = [lat,lon,flightcategory,windspeedkt]
-            
+            ap_wind_dict[stationId] = [lat, lon, flightcategory, windspeedkt]
+
         # Convert lat/lon into screen coordinates
-        x_unit,y_unit = convert_latlon(float(lat),float(lon))
+        x_unit, y_unit = convert_latlon(float(lat), float(lon))
+        pos1, pos2 = (x_unit * MULT, y_unit * MULT)
+        r, g, b = get_fc_color(flightcategory)
 
-        # Draw Outline of State on Map
-        pos = (x_unit*MULT,y_unit*MULT)
-        
-        pos1, pos2 = pos
-        r,g,b = get_fc_color(flightcategory)
-        matrix.SetPixel(pos1,pos2,r,g,b) # matrix.SetPixel(i,j,0,0,255) (x,y,R,G,B)
-        offscreen_canvas.SetPixel(pos1,pos2,r,g,b) # copy display to offscreen fr
-        offscreen_canvas1.SetPixel(pos1,pos2,r,g,b) # copy display to offscreen fr
+        # Draw pixels
+        matrix.SetPixel(pos1, pos2, r, g, b)
+        offscreen_canvas.SetPixel(pos1, pos2, r, g, b)
+        offscreen_canvas1.SetPixel(pos1, pos2, r, g, b)
 
-
+    
 def reset_scale(state):
     global scale_list,X_OFFSET,Y_OFFSET
     global flat_lonlat,flat_lat,flat_lon,rand_list,ap_ltng_list
