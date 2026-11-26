@@ -93,7 +93,6 @@ import os
 import random
 import socket
 import flask                       # sudo apt install python3-flask
-import xml.etree.ElementTree as ET
 import urllib.request, urllib.error, urllib.parse
 from state_ap_dict import *        # dict that lists each state and airport with metars
 from scalebystate import *         # dict that allows custom scaling of each state into display window
@@ -127,6 +126,7 @@ TOTAL_Y = DISPLAY_Y * PARALLEL
 outline = 1           # Show outline of state or not. 1=Yes, 0=No
 point_or_line = 1     # 0 = uses points, 1 = uses lines to draw outline of state. See NUM_STEPS below
 metar_age = "2.5"     # dictates how old the returned metars can be 2.5 hours is typical
+metar_data = []       # most recent METAR per station, filled by draw_apwx()
 delay = .0001          # delay for painting pixels in wipes
 interval = 5 * 60     # 1 min * 60 seconds, how long before switching to next state and updating FAA metar data
 use_wipe = 1          # 1 = yes, 0 = no
@@ -971,16 +971,56 @@ def get_fc_color(flightcategory):
     return(color)
 
 
+def fetch_metars(stationList):
+    # Download METARs for a comma-separated list of stations from the current
+    # aviationweather.gov API, JSON format - the same API and format LS Lite
+    # uses. Returns a list of METAR dicts holding every report in the window.
+    # Retries forever: if the house power blips, the map may boot quicker than
+    # the router, so keep trying until the data arrives.
+    # The JSON API only accepts whole hours (hours=2.5 is rejected with an
+    # HTTP 400 "Invalid value for hours"), so round metar_age UP to the next
+    # whole hour for the request. draw_apwx() then applies the exact metar_age
+    # cutoff itself when it picks each station's most recent report.
+    hours = int(float(metar_age))
+    if float(metar_age) > hours:
+        hours += 1
+    url = "https://aviationweather.gov/api/data/metar?format=json&hours=" + str(hours) + "&ids=" + stationList
+    while True: #check internet availability and retry if necessary.
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ipadd = s.getsockname()[0] #get IP Address
+        print('RPI IP Address = ' + ipadd) #log IP address when ever FAA weather update is retreived.
+        try:
+            result = urllib.request.urlopen(url).read()
+            print('Internet Available')
+            return json.loads(result.decode('UTF-8'))
+        except urllib.error.HTTPError as e:
+            if 400 <= e.code < 500:
+                # A 4xx means the request itself is invalid - retrying the
+                # same request will never succeed, so don't hang the map.
+                print('FAA Data request rejected (HTTP ' + str(e.code) + ') - skipping this group of stations')
+                print(url)
+                return []
+            print(str(e))
+            print('FAA Data is Not Available')
+            print(url)
+            time.sleep(5)
+            pass
+        except Exception as e:
+            print(str(e))
+            print('FAA Data is Not Available')
+            print(url)
+            time.sleep(5)
+            pass
+
+
 def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = get new data online
-    global root # temp test
+    global metar_data # most recent METAR for each station, from the last download
     global clear_toggle
     if use_cache == 0:
         # Define URL to get weather METARS. If no METAR reported withing the last 2.5 hours, Airport LED will be white (nowx).
-#        url = "https://aviationweather.gov/api/data/dataserver?requestType=retrieve&dataSource=metars&format=xml&mostRecent=true&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
-#        url = "https://aviationweather-cprk.ncep.noaa.gov/adds/dataserver_current/httpparam?dataSource=metars&requestType=retrieve&format=xml&mostRecentForEachStation=constraint&hoursBeforeNow="+str(metar_age)+"&stationString="
-        url = "https://aviationweather.gov/api/data/metar?format=xml&hours=" +str(metar_age)+ "&ids="
         print("---> Loading METAR Data")
-        
+
         if STATE == "CUSTOM":
             airports = custom_layout_dict['airports']
         elif STATE == "USA":
@@ -988,78 +1028,24 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
         else:
             airports = state_ap_dict[STATE.upper()]
 
-        # Build url with over 300 airports if needed. More flexible and less limiting.
+        # Download in chunks of 300 stations. More flexible and less limiting.
         # Thank you Daniel from pilotmap.co for the change to this routine that handles maps with more than 300 airports.
-        contentStart = ['<response xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" version="1.2" xsi:noNamespaceSchemaLocation="http://www.aviationweather.gov/static/adds/schema/metar1_2.xsd">']
-        content = []
-        chunk = 0;
-        stationList = ''
-        
-        for airportcode in airports:
-            stationList += airportcode + ','
-            chunk += 1
-            if(chunk >= 300):
-                stationList = stationList[:-1] #strip trailing comma from string
-
-                while True: #check internet availability and retry if necessary. If house power outage, map may boot quicker than router.
-                    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-                    s.connect(("8.8.8.8", 80))
-                    ipadd = s.getsockname()[0] #get IP Address
-                    print('RPI IP Address = ' + ipadd) #log IP address when ever FAA weather update is retreived.
-
-                    result = ''
-                    try:
-                        result = urllib.request.urlopen(url + stationList).read()
-                        r = result.decode('UTF-8').splitlines()
-                        xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
-                        content.extend(xmlStr)
-                        c = ['<x>']
-                        c.extend(content)
-                        root = ET.fromstringlist(c + ['</x>'])
-                        print('Internet Available')
-                        break
-                    
-                    except Exception as e:
-                        print(str(e))
-                        print('FAA Data is Not Available')
-                        print(url + stationList)
-                        print(result)
-                        time.sleep(5)
-                        pass
-
-                stationList = ''
-                chunk = 0
-
-        stationList = stationList[:-1] #strip trailing comma from string
-        url = url + stationList         
-            
-        while True: #check internet availability and retry if necessary. If house power outage, map may boot quicker than router.
-            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("8.8.8.8", 80))
-            ipadd = s.getsockname()[0] #get IP Address
-            print('RPI IP Address = ' + ipadd) #log IP address when ever FAA weather update is retreived.
-
-            try:
-                result = urllib.request.urlopen(url).read()
-                print('Internet Available')
-                print(url) # Debug
-                r = result.decode('UTF-8').splitlines()
-                xmlStr = r[8:len(r)-1] ##! FAA API CHANGE
-                content.extend(xmlStr)
-                c = ['<x>']
-                c.extend(content)
-                root = ET.fromstringlist(c + ['</x>'])
-                break
-            except:
-                print('FAA Data is Not Available')
-                print(url) # debug
-                time.sleep(5)
-                pass
-
-        c = ['<x>']
-        c.extend(content)
-        root = ET.fromstringlist(c + ['</x>'])
-
+        # The API returns every report in the time window, not just the latest,
+        # so keep only the most recent report for each station.
+        latest = {}
+        for i in range(0, len(airports), 300):
+            stationList = ','.join(airports[i:i+300])
+            for m in fetch_metars(stationList):
+                sid = m.get('icaoId')
+                if sid is None:
+                    continue
+                if sid not in latest or m.get('obsTime', 0) > latest[sid].get('obsTime', 0):
+                    latest[sid] = m
+        # Apply the exact metar_age cutoff (the API request above could only
+        # ask in whole hours): a station whose newest report is older than
+        # metar_age gets no weather, same as the old dataserver behaviour.
+        cutoff = time.time() - float(metar_age) * 3600
+        metar_data = [m for m in latest.values() if m.get('obsTime', 0) >= cutoff]
 
     # Grab the airport category, wind speed and various weather from the results given from FAA.
     # Start of METAR decode routine if 'metar_taf' equals 1. Script will default to this routine without a rotary switch installed.
@@ -1067,52 +1053,37 @@ def draw_apwx(STATE, use_cache=0): # draw airport weather flight category, 0 = g
         clear(BLACK)
         clear_toggle = 0
         
-    for metar in root.iter('METAR'):
-        stationId = metar.find('station_id').text
-        
+    for metar in metar_data:
+        stationId = metar.get('icaoId')
+
         # Grab flight category from returned FAA data
-        if metar.find('flight_category') is None: # if category is blank, then bypass
-            flightcategory = "NONE"
-        else:
-            flightcategory = metar.find('flight_category').text
-            
+        flightcategory = metar.get('fltCat') or "NONE"
+
         # Grab lat/lon of airport
-        if metar.find('latitude') is None: # if category is blank, then bypass
+        lat = metar.get('lat')
+        if lat is None: # if lat is blank, then bypass
             lat = "0.000"
-        else:
-            lat = metar.find('latitude').text           
-        if metar.find('longitude') is None: # if category is blank, then bypass
+        lon = metar.get('lon')
+        if lon is None: # if lon is blank, then bypass
             lon = "0.000"
-        else:
-            lon = metar.find('longitude').text
-            
+
         # Grab wind speeds from returned FAA data
-        if metar.find('wind_speed_kt') is None: # if wind speed is blank, then bypass
-            windspeedkt = 0
-        else:
-            windspeedkt = int(metar.find('wind_speed_kt').text)
-            
+        windspeedkt = int(metar.get('wspd') or 0)
+
         # Grab wind gust from returned FAA data - Lance Blank
-        if metar.find('wind_gust_kt') is None: #if wind speed is blank, then bypass
-            windgustkt = 0
-        else:
-            windgustkt = int(metar.find('wind_gust_kt').text)
-            
+        windgustkt = int(metar.get('wgst') or 0)
+
         # Grab wind direction from returned FAA data
-        if metar.find('wind_dir_degrees') is None: # if wind speed is blank, then bypass
-            winddirdegree = 0
-        elif metar.find('wind_dir_degrees').text == 'VRB':
+        winddir = metar.get('wdir')
+        if winddir is None or winddir == 'VRB': # if wind direction is blank or variable, then bypass
             winddirdegree = 0
         else:
-            winddirdegree = int(metar.find('wind_dir_degrees').text)
-            
+            winddirdegree = int(winddir)
+
         # Grab Weather info from returned FAA data
-        if metar.find('wx_string') is None: # if weather string is blank, then bypass
-            wxstring = "NONE"
-        else:
-            wxstring = metar.find('wx_string').text
-#            print(wxstring) # debug
-        
+        wxstring = metar.get('wxString') or "NONE"
+#        print(wxstring) # debug
+
         # Build list of airports that report tstorms and lightning in the area
         if wxstring in wx_lghtn_ck:
             print(stationId, wxstring) # debug
